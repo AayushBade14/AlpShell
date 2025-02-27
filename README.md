@@ -1,7 +1,5 @@
 # AlpsOS
 
-# AlpShell
-
 **A lightweight and efficient command-line shell designed to minimize bloatware and optimize system performance.**
 
 ## 🚀 Introduction
