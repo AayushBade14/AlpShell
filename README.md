@@ -31,6 +31,7 @@ AlpShell is a custom-built shell that provides a fast, lightweight, and user-fri
 - Syntax highlighting and auto-suggestions.
 - Customizable prompt and environment variables.
 - Colored output for better readability.
+- Different color for logs and errors for readability enhancement.
 
 ---
 🚀 *Experience the power of a fast and minimalistic shell with AlpShell!*
