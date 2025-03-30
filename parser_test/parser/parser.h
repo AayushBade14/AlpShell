@@ -6,7 +6,7 @@
 
 class Parser {
 public:
-    void parse(const std::vector<Token>& tokens);
+    std::vector<Command> parse(const std::vector<Token>& tokens);
     void printParseTree();
 private:
     struct Node {
@@ -17,4 +17,3 @@ private:
 };
 
 #endif
-

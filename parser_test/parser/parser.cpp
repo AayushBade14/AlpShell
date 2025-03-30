@@ -1,7 +1,9 @@
 #include "parser.h"
+#include "command.h"
 #include <iostream>
 
-void Parser::parse(const std::vector<Token>& tokens) {
+std::vector<Command> Parser::parse(const std::vector<Token>& tokens) {
+    std::vector<Command> commands; 
     root_.value = "Root";
     
     Node* currentNode = &root_;
@@ -27,22 +29,9 @@ void Parser::parse(const std::vector<Token>& tokens) {
             currentNode = &redirectNode;
             root_.children.push_back(redirectNode);
         } else {
-            // Add as child of current node
-            currentNode->children.push_back(newNode);
-        }
+            // Create a new Command and populate it
+            Command cmd;
+            cmd.executable = token.value; // Assuming token.value is the command
+            commands.push_back(cmd);
     }
-}
-
-void Parser::printParseTree(Node* node, int level) {
-    for (int i = 0; i < level; ++i) std::cout << "  ";
-    std::cout << node->value << std::endl;
-    
-    for (const auto& child : node->children) {
-        printParseTree(&child, level + 1);
-    }
-}
-
-void Parser::printParseTree() {
-    printParseTree(&root_, 0);
-}
-
+    return commands; // Return the vector of commands
