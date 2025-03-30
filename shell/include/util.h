@@ -19,5 +19,5 @@
 #include<sstream>
 
 namespace AlpUtil {
-  char *alp_flag_util(int argc,char **argv);
+  std::string alp_flag_util(int argc,char **argv);
 };
