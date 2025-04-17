@@ -5,7 +5,22 @@
 #include <vector>
 
 void executeCommand(const Command &cmd) {
+    std::cout << "Executing command: " << cmd.executable << std::endl; // Debug statement
+    std::cout << "Arguments: ";
+    for (const auto& arg : cmd.arguments) {
+        std::cout << arg << " ";
+    }
+    std::cout << std::endl; // Log the arguments
+    if (cmd.executable.empty()) { 
+        std::cerr << "Error: No command provided." << std::endl; // Debug statement
+        std::cerr << "Error: No command provided." << std::endl;
+        return;
+    }
     pid_t pid = fork();
+    if (pid < 0) {
+        std::cerr << "Error: Fork failed!" << std::endl;
+        return;
+    }
     if (pid == 0) { // Child process
         // Handle input redirection if specified
         if (!cmd.inputFile.empty()) {
@@ -37,8 +52,6 @@ void executeCommand(const Command &cmd) {
             std::cerr << "Error: Execution failed for command: " << cmd.executable << std::endl;
             exit(EXIT_FAILURE);
         }
-    } else if (pid < 0) {
-        std::cerr << "Error: Fork failed!" << std::endl;
     } else { // Parent process
         int status;
         waitpid(pid, &status, 0);
