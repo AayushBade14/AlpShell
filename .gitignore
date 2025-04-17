@@ -32,3 +32,5 @@
 *.app
 
 shell/build
+build
+.vscode
