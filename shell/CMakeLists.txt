@@ -23,6 +23,7 @@ set(SOURCES
     src/parser.cpp
     src/shell.cpp
     src/util.cpp
+    src/syntax_highlight.cpp
 )
 
 # Add executable
