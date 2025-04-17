@@ -5,4 +5,6 @@
 
 void executeCommand(const Command &cmd);
 
+pid_t executePipeline(const std::vector<Command>& commands, bool background);
+
 #endif // EXECUTOR_H
