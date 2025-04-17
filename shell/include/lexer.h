@@ -85,10 +85,20 @@ enum class QuotingType {
     DOUBLE        // Enclosed in "..."
 };
 
-struct Token {
+enum class LexerState
+{
+    DEFAULT,
+    IN_SQUOTE,
+    IN_DQUOTE
+};
+
+struct Token
+{
     TokenType type;
     std::string value;
     QuotingType quoting = QuotingType::NONE;
+    size_t start_pos = 0; // Add position tracking
+    size_t end_pos = 0;   // Add position tracking
 };
 
 class Lexer {

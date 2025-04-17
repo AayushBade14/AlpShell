@@ -15,8 +15,15 @@
 // #include <fcntl.h>
 
 // --- Readline Headers ---
-#include <readline/readline.h>
-#include <readline/history.h>
+
+extern "C"
+{
+    #include <readline/readline.h>
+    #include <readline/history.h>
+}
+
+// #include <readline/readline.h>
+// #include <readline/history.h>
 // -----------------------
 
 #include "lexer.h"
@@ -26,7 +33,7 @@
 #include "job_control.h"
 #include "history.h"
 #include "prompt.h"
-
+#include "syntax_highlight.h"
 
 static char** completion_callback(const char *text, int start, int end);
 static char* command_generator(const char *text, int state);
@@ -38,6 +45,21 @@ static std::set<std::string>::iterator command_match_iter;
 static char* command_generator(const char *text, int state) {
     // If state is 0, it's the first call for this completion attempt.
     // We need to find all possible command matches.
+    for (const std::string &dir : path_dirs)
+    {
+        DIR *dirp = opendir(dir.c_str());
+        if (!dirp)
+        {
+            continue;
+        }
+
+        struct dirent *dp;
+        while ((dp = readdir(dirp)) != nullptr)
+        {
+            // ... existing match checking ...
+        }
+        closedir(dirp); // Moved INSIDE the if-block
+    }
     if (state == 0) {
         command_matches.clear(); // Clear previous matches
 
@@ -307,7 +329,24 @@ bool process_line(const std::string& line, bool is_interactive) {
 // }
 
 // --- Main Function ---
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
+    // Add to beginning of main() before ANY other code
+    // putenv((char *)"TERM=xterm-256color");
+    setenv("TERM", "xterm-256color", 1);
+
+    rl_instream = stdin;
+    rl_outstream = stdout;
+
+    // Set completion and display hooks
+    rl_attempted_completion_function = completion_callback;
+    rl_redisplay_function = redisplay_hook;
+    // rl_redisplay_hook = redisplay_hook;
+    rl_char_is_quoted_p = reinterpret_cast<rl_linebuf_func_t *>(&is_quoted);
+
+    // Then prepare terminal
+    rl_prep_terminal(1); // Must come after stream assignments
+    rl_set_signals();
 
     // // Create debug log file
     // int log_fd = open("debug.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -330,9 +369,6 @@ int main(int argc, char *argv[]) {
 
     setenv("CLICOLOR", "1", 1);
     setenv("CLICOLOR_FORCE", "1", 1);
-
-    rl_attempted_completion_function = completion_callback;
-
 
     // Setup signal handler for job control (needed in both modes)
     JobControl::setupSignalHandlers();
