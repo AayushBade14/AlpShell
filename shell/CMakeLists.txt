@@ -14,6 +14,7 @@ include_directories(include)
 # Source files
 set(SOURCES
     main.cpp
+    src/prompt.cpp
     src/command.cpp
     src/executor.cpp
     src/history.cpp
