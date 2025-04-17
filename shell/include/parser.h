@@ -10,15 +10,14 @@ public:
     ~Parser(); // Destructor declaration
     std::vector<Command> parse(const std::vector<Token>& tokens);
     void printParseTree();
-private:
     struct Node {
         std::string value;
         std::vector<Node*> children; // Store pointers to Node
     };
+    void printParseTreeHelper(Node* node, int level);
+private:
     Node root_;
     void deleteNodes(Node* node); // Added helper function declaration
-public:
-    void printParseTreeHelper(Node* node, int level); // Moved declaration
 };
 
 #endif
