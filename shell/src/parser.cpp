@@ -5,10 +5,12 @@
 #include <string>
 #include <cstdlib> // For getenv()
 #include <cctype>  // For isalpha, isalnum, etc.
+#include <glob.h>
 
 // --- Forward Declarations for Static Helpers ---
 static void flattenNodeTree(const Parser::Node* node, std::vector<Command>& commands);
 static std::string expandVariables(const std::string& input, QuotingType quoting);
+static bool containsWildcard(const std::string& s);
 
 
 // --- Variable Expansion Helper ---
@@ -75,6 +77,13 @@ static std::string expandVariables(const std::string& input, QuotingType quoting
     return result;
 }
 
+static bool containsWildcard(const std::string& s) {
+    // Basic check: More sophisticated checks could avoid matching literal brackets etc.
+    return s.find('*') != std::string::npos ||
+           s.find('?') != std::string::npos ||
+           s.find('[') != std::string::npos;
+}
+
 
 // --- Parser Member Function Definitions ---
 
@@ -125,7 +134,7 @@ std::vector<Command> Parser::parse(const std::vector<Token>& tokens) {
                 currentCommandNode->children.push_back(argNode);
             } else if (token.type == TokenType::REDIRECT_IN || token.type == TokenType::REDIRECT_OUT ||
               token.type == TokenType::REDIRECT_APPEND) {
-                
+
                  Node* redirectNode = new Node();
                  redirectNode->value = token.value; // Store ">" or "<"
                  redirectNode->quoting = QuotingType::NONE; // Operators aren't quoted
@@ -238,49 +247,149 @@ void Parser::printParseTreeHelper(Node* node, int level) {
 // }
 
 static void flattenNodeTree(const Parser::Node* node, std::vector<Command>& commands) {
+    // if (!node || node->value != "Root") { return; }
+
+    // for (const Parser::Node* commandNode : node->children) {
+    //     Command currentCmd;
+    //     if (!commandNode) continue;
+
+    //     currentCmd.executable = expandVariables(commandNode->value, commandNode->quoting);
+
+    //     bool expectOutputFilename = false;
+    //     bool expectInputFilename = false;
+    //     bool appendOutput = false; // Reset append flag for each command segment
+
+    //     for (const Parser::Node* childNode : commandNode->children) {
+    //          if (!childNode) continue;
+
+    //         if (expectOutputFilename) {
+    //             currentCmd.outputFile = expandVariables(childNode->value, childNode->quoting);
+    //             // *** Use the appendOutput flag set when the operator was seen ***
+    //             currentCmd.appendOutput = appendOutput;
+    //             expectOutputFilename = false;
+    //             // appendOutput is automatically reset later if another > or >> is seen
+    //         } else if (expectInputFilename) {
+    //             currentCmd.inputFile = expandVariables(childNode->value, childNode->quoting);
+    //             expectInputFilename = false;
+    //         } else {
+    //             // Check for redirection operators FIRST
+    //             if (childNode->value == ">") {
+    //                 if (!currentCmd.outputFile.empty()) { /* Error: Multiple output redirects */ }
+    //                 expectOutputFilename = true;
+    //                 appendOutput = false; // Set append flag to false for >
+    //             } else if (childNode->value == ">>") { // *** Check for >> ***
+    //                  if (!currentCmd.outputFile.empty()) { /* Error: Multiple output redirects */ }
+    //                 expectOutputFilename = true;
+    //                 appendOutput = true; // Set append flag to true for >>
+    //             } else if (childNode->value == "<") {
+    //                 if (!currentCmd.inputFile.empty()) { /* Error: Multiple input redirects */ }
+    //                 expectInputFilename = true;
+    //             } else {
+    //                 // Otherwise, it's an argument - expand it
+    //                 currentCmd.arguments.push_back(expandVariables(childNode->value, childNode->quoting));
+    //             }
+    //         }
+    //     }
+    //     if (expectInputFilename || expectOutputFilename) { /* Dangling redirection Error */ }
+
+    //     commands.push_back(currentCmd);
+    // }
+
     if (!node || node->value != "Root") { return; }
 
     for (const Parser::Node* commandNode : node->children) {
         Command currentCmd;
         if (!commandNode) continue;
 
+        // Expand executable FIRST (usually no globbing on executable itself)
         currentCmd.executable = expandVariables(commandNode->value, commandNode->quoting);
 
         bool expectOutputFilename = false;
         bool expectInputFilename = false;
-        bool appendOutput = false; // Reset append flag for each command segment
+        bool appendOutput = false;
 
         for (const Parser::Node* childNode : commandNode->children) {
              if (!childNode) continue;
 
+            // --- Handle Filenames for Redirection ---
             if (expectOutputFilename) {
-                currentCmd.outputFile = expandVariables(childNode->value, childNode->quoting);
-                // *** Use the appendOutput flag set when the operator was seen ***
+                std::string filename = expandVariables(childNode->value, childNode->quoting);
+                // NOTE: Generally, we DON'T glob redirection filenames in shells like bash.
+                // If you wanted globbing here, you'd add the glob logic, but it's non-standard.
+                currentCmd.outputFile = filename;
                 currentCmd.appendOutput = appendOutput;
                 expectOutputFilename = false;
-                // appendOutput is automatically reset later if another > or >> is seen
+                appendOutput = false;
+                continue; // Move to next child node
             } else if (expectInputFilename) {
-                currentCmd.inputFile = expandVariables(childNode->value, childNode->quoting);
+                std::string filename = expandVariables(childNode->value, childNode->quoting);
+                // Don't glob input filenames either
+                currentCmd.inputFile = filename;
                 expectInputFilename = false;
-            } else {
-                // Check for redirection operators FIRST
-                if (childNode->value == ">") {
-                    if (!currentCmd.outputFile.empty()) { /* Error: Multiple output redirects */ }
-                    expectOutputFilename = true;
-                    appendOutput = false; // Set append flag to false for >
-                } else if (childNode->value == ">>") { // *** Check for >> ***
-                     if (!currentCmd.outputFile.empty()) { /* Error: Multiple output redirects */ }
-                    expectOutputFilename = true;
-                    appendOutput = true; // Set append flag to true for >>
-                } else if (childNode->value == "<") {
-                    if (!currentCmd.inputFile.empty()) { /* Error: Multiple input redirects */ }
-                    expectInputFilename = true;
-                } else {
-                    // Otherwise, it's an argument - expand it
-                    currentCmd.arguments.push_back(expandVariables(childNode->value, childNode->quoting));
-                }
+                continue; // Move to next child node
             }
-        }
+
+            // --- Handle Redirection Operators ---
+            if (childNode->value == ">" || childNode->value == ">>" || childNode->value == "<") {
+                 if (childNode->value == ">") {
+                     if (!currentCmd.outputFile.empty()) { /* Error */ }
+                     expectOutputFilename = true;
+                     appendOutput = false;
+                 } else if (childNode->value == ">>") {
+                     if (!currentCmd.outputFile.empty()) { /* Error */ }
+                     expectOutputFilename = true;
+                     appendOutput = true;
+                 } else if (childNode->value == "<") {
+                     if (!currentCmd.inputFile.empty()) { /* Error */ }
+                     expectInputFilename = true;
+                 }
+                 continue; // Operator handled, move to next child node
+            }
+
+            // --- Handle Regular Arguments (Potential Globbing) ---
+
+            // 1. Expand variables first
+            std::string potentialArg = expandVariables(childNode->value, childNode->quoting);
+
+            // 2. Check if globbing should be applied
+            //    - Only if NOT single/double quoted AND contains wildcard characters
+            if (childNode->quoting == QuotingType::NONE && containsWildcard(potentialArg))
+            {
+                glob_t glob_result;
+                // Use GLOB_NOCHECK: If no match, returns the pattern itself.
+                // Use GLOB_TILDE: Handle ~ expansion (optional but useful)
+                // GLOB_ERR: Report errors
+                int glob_status = glob(potentialArg.c_str(), GLOB_TILDE | GLOB_NOCHECK | GLOB_ERR, nullptr, &glob_result);
+
+                if (glob_status == 0) {
+                     // Glob succeeded, add all matches (could be 1 if GLOB_NOCHECK returned pattern)
+                     for (size_t i = 0; i < glob_result.gl_pathc; ++i) {
+                         currentCmd.arguments.push_back(glob_result.gl_pathv[i]);
+                     }
+                } else {
+                    // Glob failed (error or GLOB_NOMATCH without GLOB_NOCHECK)
+                    // With GLOB_NOCHECK, glob_status != 0 usually means an error like GLOB_NOSPACE or GLOB_ABORTED.
+                    // We'll just add the unglobbed argument as a fallback.
+                    // You could print an error here based on glob_status if desired.
+                     if (glob_status == GLOB_NOMATCH) {
+                         // Should not happen with GLOB_NOCHECK, but defensively add original arg
+                         currentCmd.arguments.push_back(potentialArg);
+                     } else {
+                         std::cerr << "alpShell: glob error: " << glob_status << " for pattern " << potentialArg << std::endl;
+                         // Still add the original argument so the command receives something
+                         currentCmd.arguments.push_back(potentialArg);
+                     }
+                }
+                // Free memory allocated by glob()
+                globfree(&glob_result);
+            }
+            else {
+                // No globbing needed (quoted or no wildcards)
+                currentCmd.arguments.push_back(potentialArg);
+            }
+
+        } // End loop through children (arguments/redirections)
+
         if (expectInputFilename || expectOutputFilename) { /* Dangling redirection Error */ }
 
         commands.push_back(currentCmd);
