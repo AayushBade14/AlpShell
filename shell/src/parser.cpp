@@ -123,7 +123,9 @@ std::vector<Command> Parser::parse(const std::vector<Token>& tokens) {
                 argNode->value = token.value;
                 argNode->quoting = token.quoting; // *** Store quoting info ***
                 currentCommandNode->children.push_back(argNode);
-            } else if (token.type == TokenType::REDIRECT_IN || token.type == TokenType::REDIRECT_OUT) {
+            } else if (token.type == TokenType::REDIRECT_IN || token.type == TokenType::REDIRECT_OUT ||
+              token.type == TokenType::REDIRECT_APPEND) {
+                
                  Node* redirectNode = new Node();
                  redirectNode->value = token.value; // Store ">" or "<"
                  redirectNode->quoting = QuotingType::NONE; // Operators aren't quoted
@@ -187,6 +189,54 @@ void Parser::printParseTreeHelper(Node* node, int level) {
 // --- Static Helper Function Definition ---
 
 // Flattens the Node tree AND performs variable expansion
+// static void flattenNodeTree(const Parser::Node* node, std::vector<Command>& commands) {
+//     if (!node || node->value != "Root") { return; }
+
+//     for (const Parser::Node* commandNode : node->children) {
+//         Command currentCmd;
+//         if (!commandNode) continue;
+
+//         // *** Expand executable name ***
+//         currentCmd.executable = expandVariables(commandNode->value, commandNode->quoting);
+
+//         bool expectOutputFilename = false;
+//         bool expectInputFilename = false;
+//         bool appendOutput = false; // Still not handled
+
+//         for (const Parser::Node* childNode : commandNode->children) {
+//              if (!childNode) continue;
+
+//             if (expectOutputFilename) {
+//                  // *** Expand output filename ***
+//                 currentCmd.outputFile = expandVariables(childNode->value, childNode->quoting);
+//                 currentCmd.appendOutput = appendOutput;
+//                 expectOutputFilename = false;
+//                 appendOutput = false;
+//             } else if (expectInputFilename) {
+//                  // *** Expand input filename ***
+//                 currentCmd.inputFile = expandVariables(childNode->value, childNode->quoting);
+//                 expectInputFilename = false;
+//             } else {
+//                 if (childNode->value == ">") { // Operators themselves are not expanded
+//                     if (!currentCmd.outputFile.empty()) { /* Error */ }
+//                     expectOutputFilename = true;
+//                     appendOutput = false;
+//                 } else if (childNode->value == "<") { // Operators themselves are not expanded
+//                     if (!currentCmd.inputFile.empty()) { /* Error */ }
+//                     expectInputFilename = true;
+//                 } else {
+//                     // Otherwise, it's an argument - expand it
+//                     currentCmd.arguments.push_back(expandVariables(childNode->value, childNode->quoting));
+//                 }
+//             }
+//         }
+//         if (expectInputFilename || expectOutputFilename) { /* Dangling redirection Error */ }
+
+//         // Add the constructed & expanded command
+//         commands.push_back(currentCmd);
+//     }
+// }
+
 static void flattenNodeTree(const Parser::Node* node, std::vector<Command>& commands) {
     if (!node || node->value != "Root") { return; }
 
@@ -194,33 +244,36 @@ static void flattenNodeTree(const Parser::Node* node, std::vector<Command>& comm
         Command currentCmd;
         if (!commandNode) continue;
 
-        // *** Expand executable name ***
         currentCmd.executable = expandVariables(commandNode->value, commandNode->quoting);
 
         bool expectOutputFilename = false;
         bool expectInputFilename = false;
-        bool appendOutput = false; // Still not handled
+        bool appendOutput = false; // Reset append flag for each command segment
 
         for (const Parser::Node* childNode : commandNode->children) {
              if (!childNode) continue;
 
             if (expectOutputFilename) {
-                 // *** Expand output filename ***
                 currentCmd.outputFile = expandVariables(childNode->value, childNode->quoting);
+                // *** Use the appendOutput flag set when the operator was seen ***
                 currentCmd.appendOutput = appendOutput;
                 expectOutputFilename = false;
-                appendOutput = false;
+                // appendOutput is automatically reset later if another > or >> is seen
             } else if (expectInputFilename) {
-                 // *** Expand input filename ***
                 currentCmd.inputFile = expandVariables(childNode->value, childNode->quoting);
                 expectInputFilename = false;
             } else {
-                if (childNode->value == ">") { // Operators themselves are not expanded
-                    if (!currentCmd.outputFile.empty()) { /* Error */ }
+                // Check for redirection operators FIRST
+                if (childNode->value == ">") {
+                    if (!currentCmd.outputFile.empty()) { /* Error: Multiple output redirects */ }
                     expectOutputFilename = true;
-                    appendOutput = false;
-                } else if (childNode->value == "<") { // Operators themselves are not expanded
-                    if (!currentCmd.inputFile.empty()) { /* Error */ }
+                    appendOutput = false; // Set append flag to false for >
+                } else if (childNode->value == ">>") { // *** Check for >> ***
+                     if (!currentCmd.outputFile.empty()) { /* Error: Multiple output redirects */ }
+                    expectOutputFilename = true;
+                    appendOutput = true; // Set append flag to true for >>
+                } else if (childNode->value == "<") {
+                    if (!currentCmd.inputFile.empty()) { /* Error: Multiple input redirects */ }
                     expectInputFilename = true;
                 } else {
                     // Otherwise, it's an argument - expand it
@@ -230,7 +283,6 @@ static void flattenNodeTree(const Parser::Node* node, std::vector<Command>& comm
         }
         if (expectInputFilename || expectOutputFilename) { /* Dangling redirection Error */ }
 
-        // Add the constructed & expanded command
         commands.push_back(currentCmd);
     }
 }
