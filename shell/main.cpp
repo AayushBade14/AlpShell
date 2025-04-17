@@ -277,6 +277,10 @@
 #include <cstdio>  // For perror()
 #include <unistd.h> // For fork(), pid_t, chdir(), isatty()
 #include <fstream> // For reading script files
+#include <sys/stat.h>
+#include <dirent.h>
+#include <cstring>
+#include <set>
 
 // --- Readline Headers ---
 #include <readline/readline.h>
@@ -289,6 +293,102 @@
 #include "executor.h"
 #include "job_control.h"
 #include "history.h"
+
+static char** completion_callback(const char *text, int start, int end);
+static char* command_generator(const char *text, int state);
+
+static std::vector<std::string> path_dirs; // Parsed PATH directories
+static std::set<std::string> command_matches; // Unique command matches found
+static std::set<std::string>::iterator command_match_iter;
+
+static char* command_generator(const char *text, int state) {
+    // If state is 0, it's the first call for this completion attempt.
+    // We need to find all possible command matches.
+    if (state == 0) {
+        command_matches.clear(); // Clear previous matches
+
+        // 1. Get and parse PATH environment variable
+        const char* path_env = getenv("PATH");
+        if (!path_env) {
+            path_env = "/bin:/usr/bin"; // Sensible default if PATH isn't set
+        }
+        std::string path_str(path_env);
+        std::stringstream ss(path_str);
+        std::string dir_name;
+        path_dirs.clear();
+        while (std::getline(ss, dir_name, ':')) {
+            if (!dir_name.empty()) {
+                path_dirs.push_back(dir_name);
+            }
+        }
+        // Add current directory too? Some shells do, some don't implicitly. Let's skip for now.
+
+        // 2. Iterate through PATH directories and find executable matches
+        size_t text_len = strlen(text);
+        struct stat st;
+
+        for (const std::string& dir : path_dirs) {
+            DIR *dirp = opendir(dir.c_str());
+            if (!dirp) {
+                continue; // Couldn't open directory, skip
+            }
+
+            struct dirent *dp;
+            while ((dp = readdir(dirp)) != nullptr) {
+                // Check if filename starts with the text we're completing
+                if (strncmp(dp->d_name, text, text_len) == 0) {
+                    // Construct full path
+                    std::string full_path = dir + "/" + dp->d_name;
+
+                    // Check if it's a regular file and executable
+                    if (stat(full_path.c_str(), &st) == 0 && S_ISREG(st.st_mode) && (access(full_path.c_str(), X_OK) == 0))
+                    {
+                        command_matches.insert(dp->d_name); // Insert unique command name
+                    }
+                }
+            }
+            closedir(dirp);
+        }
+        // Initialize iterator for returning matches
+        command_match_iter = command_matches.begin();
+    }
+
+    // Return next match (or NULL if no more matches)
+    if (command_match_iter != command_matches.end()) {
+        const std::string& match = *command_match_iter;
+        ++command_match_iter;
+        // Readline expects malloc'd strings, use strdup
+        return strdup(match.c_str());
+    }
+
+    // No more matches
+    return nullptr;
+}
+
+
+static char** completion_callback(const char *text, int start, int /*end*/) {
+    // Don't do filename completion even if invoked on empty line.
+    // rl_attempted_completion_over = 1; // Use this if you want to prevent further completion attempts
+
+    // If 'start' is 0, we are completing the command itself (first word)
+    if (start == 0) {
+        // Use rl_completion_matches to call our generator and get results
+        // It handles calling the generator with state 0, 1, 2... and collecting results
+        return rl_completion_matches(text, command_generator);
+    }
+    // Otherwise (start != 0), assume filename completion
+    else {
+        // Use readline's default filename completer generator
+        // We pass NULL as the generator to rl_completion_matches,
+        // which tells it to use the default filename completer.
+        // Alternatively, explicitly use rl_filename_completion_function:
+        // return rl_completion_matches(text, rl_filename_completion_function);
+         return rl_completion_matches(text, rl_filename_completion_function);
+    }
+
+    // Should not be reached
+    // return nullptr;
+}
 
 // Function to process a single line of command input
 // Returns true to continue, false to exit
@@ -451,6 +551,10 @@ bool process_line(const std::string& line, bool is_interactive) {
 
 // --- Main Function ---
 int main(int argc, char *argv[]) {
+
+    rl_attempted_completion_function = completion_callback;
+
+
     // Setup signal handler for job control (needed in both modes)
     JobControl::setupSignalHandlers();
 
