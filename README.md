@@ -2,9 +2,26 @@
 
 AlpShell is a lightweight, fast, and extensible custom-built shell developed by students from IIT Jodhpur. Designed from scratch in C++, AlpShell aims to eliminate system bloat and improve shell performance without compromising essential functionality or user experience.
 
+
 ## Project Overview
 
 AlpShell functions as a modern, minimalistic shell for Unix-like systems. It features a clean command-line interface that supports command execution, job control, file management, scripting, and extensibility — all with enhanced responsiveness and reduced system overhead.
+
+
+## Directory Structure
+
+```
+├── bootloader/           # x86 bootloader (for future system-level integration)
+├── shell/                # Core shell implementation
+│   ├── src/              # Source files
+│   ├── include/          # Header files
+│   ├── main.cpp          # Entry point
+│   └── Makefile/CMake    # Build scripts
+├── parser_test/          # Lexer & parser testbed
+├── userland/             # Placeholder for userland programs
+└── README.md             # This file
+```
+
 
 ## Features
 
@@ -30,11 +47,13 @@ AlpShell functions as a modern, minimalistic shell for Unix-like systems. It fea
 - Customizable shell prompt
 - Error/output separation with formatting
 
+
 ## Architecture Highlights
 - Modular design for maintainability
 - Tokenizer and parser for command interpretation
 - Readline integration for user input and history
 - Lightweight and portable — minimal dependencies
+
 
 ## Build & Run Instructions
 
@@ -51,28 +70,14 @@ cmake ..
 make
 ```
 
-### Directory Structure
-
-```
-├── bootloader/           # x86 bootloader (for future system-level integration)
-├── shell/                # Core shell implementation
-│   ├── src/              # Source files
-│   ├── include/          # Header files
-│   ├── main.cpp          # Entry point
-│   └── Makefile/CMake    # Build scripts
-├── parser_test/          # Lexer & parser testbed
-├── userland/             # Placeholder for userland programs
-└── README.md             # This file
-```
-
-### Authors
+## Authors
 Aurindum Banerjee (B23CS1006)
 Lokesh Motwani (B23CS1033)
 Laksh Mendpara (B23CS1037)
 Aayush Bade (B23CS1084)
 Prashasta Srivastava (B23CS1096)
 
-### References
+## References
 IBM AIX Shell Features
 Fish Shell 
 [Why Zsh? – Joe Jag](https://code.joejag.com/2014/why-zsh.html#:~:text=Not%20only%20does%20it%20help,Zsh%20a%20joy%20to%20use.)
