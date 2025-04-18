@@ -34,6 +34,7 @@ extern "C"
 #include "history.h"
 #include "prompt.h"
 #include "syntax_highlight.h"
+#include "auto_suggestion.h"
 
 static char** completion_callback(const char *text, int start, int end);
 static char* command_generator(const char *text, int state);
@@ -144,6 +145,13 @@ static char** completion_callback(const char *text, int start, int /*end*/) {
 
     // Should not be reached
     // return nullptr;
+}
+
+static int update_suggestion_hook()
+{
+    current_suggestion = findHistorySuggestion(rl_line_buffer);
+    suggestion_active = !current_suggestion.empty();
+    return 0;
 }
 
 // Function to process a single line of command input
@@ -296,7 +304,7 @@ bool process_line(const std::string& line, bool is_interactive) {
         JobControl::addJob(last_pid, line);
         // Optionally suppress this message in non-interactive mode
         if (is_interactive) {
-             std::cout << "Started background job [" << last_pid << "]" << std::endl;
+            std::cout << "Started background job [" << last_pid << "]" << std::endl;
         }
     } else if (runInBackground && last_pid == 0) {
          std::cerr << "Failed to start background job." << std::endl;
@@ -306,7 +314,12 @@ bool process_line(const std::string& line, bool is_interactive) {
 
     // If a foreground command failed, should the script exit?
     // Standard shells often have `set -e` for this. We don't implement that yet.
-
+    if (is_interactive)
+    {
+        rl_reset_line_state();
+        rl_redisplay();
+    }
+    
     return true; // Continue processing
 }
 
@@ -334,6 +347,11 @@ int main(int argc, char *argv[])
     // Add to beginning of main() before ANY other code
     // putenv((char *)"TERM=xterm-256color");
     setenv("TERM", "xterm-256color", 1);
+    rl_event_hook = update_suggestion_hook;
+    rl_variable_bind("visible-stats", "0");
+    rl_variable_bind("colored-stats", "0");
+    rl_variable_bind("enable-bracketed-paste", "1");
+    rl_reset_terminal(nullptr); // Reinitialize terminal after env change
 
     rl_instream = stdin;
     rl_outstream = stdout;
@@ -347,6 +365,10 @@ int main(int argc, char *argv[])
     // Then prepare terminal
     rl_prep_terminal(1); // Must come after stream assignments
     rl_set_signals();
+
+    rl_bind_keyseq("\e[A", handleUpArrow);    // Up arrow
+    rl_bind_keyseq("\e[B", handleDownArrow);  // Down arrow
+    rl_bind_keyseq("\e[C", acceptSuggestion); // Right arrow
 
     // // Create debug log file
     // int log_fd = open("debug.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -430,6 +452,12 @@ int main(int argc, char *argv[])
         }
          // Check for errors reading from the file stream if needed
          // if (input_stream->bad()) { ... }
+    }
+    
+    if (is_interactive)
+    {
+        // Force readline to recognize we're on a new line
+        rl_on_new_line();
     }
 
     return EXIT_SUCCESS;
