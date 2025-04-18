@@ -12,7 +12,7 @@ CXXFLAGS = -Wall -g -std=c++11 -I$(INCLUDE_DIR)
 LIBS = -lreadline
 
 #Objs
-OBJS = main.o $(SRC_DIR)/command.o $(SRC_DIR)/executor.o $(SRC_DIR)/history.o $(SRC_DIR)/job_control.o $(SRC_DIR)/lexer.o $(SRC_DIR)/parser.o $(SRC_DIR)/shell.o $(SRC_DIR)/util.o $(SRC_DIR)/prompt.o
+OBJS = main.o $(SRC_DIR)/command.o $(SRC_DIR)/executor.o $(SRC_DIR)/history.o $(SRC_DIR)/job_control.o $(SRC_DIR)/lexer.o $(SRC_DIR)/parser.o $(SRC_DIR)/shell.o $(SRC_DIR)/util.o $(SRC_DIR)/prompt.o $(SRC_DIR)/auto_suggestion.o $(SRC_DIR)/syntax_highlight.o
 
 #Target
 TARGET = $(BUILD_DIR)/alpshell
@@ -27,6 +27,7 @@ $(TARGET): $(OBJS)
 #Compiling
 main.o: $(INCLUDE_DIR)/prompt.h $(INCLUDE_DIR)/lexer.h $(INCLUDE_DIR)/parser.h $(INCLUDE_DIR)/command.h $(INCLUDE_DIR)/executor.h $(INCLUDE_DIR)/job_control.h $(INCLUDE_DIR)/history.h 
 $(SRC_DIR)/prompt.o: $(INCLUDE_DIR)/prompt.h
+$(SRC_DIR)/auto_suggestion.o: $(INCLUDE_DIR)/auto_suggestion.h
 $(SRC_DIR)/syntax_highlight.o: $(INCLUDE_DIR)/syntax_highlight.h
 $(SRC_DIR)/shell.o: $(INCLUDE_DIR)/parser.h $(INCLUDE_DIR)/util.h $(INCLUDE_DIR)/shell.h
 $(SRC_DIR)/parser.o: $(INCLUDE_DIR)/lexer.h $(INCLUDE_DIR)/parser.h

@@ -24,6 +24,7 @@ set(SOURCES
     src/shell.cpp
     src/util.cpp
     src/syntax_highlight.cpp
+    src/auto_suggestion.cpp
 )
 
 # Add executable
