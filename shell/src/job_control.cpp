@@ -1,4 +1,5 @@
 #include "job_control.h"
+#include "prompt.h"
 #include <iostream>
 #include <algorithm>
 #include <csignal>
@@ -33,15 +34,29 @@ namespace JobControl {
         updateJobStatus(pid, DONE);
     }
 
-    void listJobs() {
-        for (const auto &job : jobs) {
+    void listJobs()
+    {
+        for (const auto &job : jobs)
+        {
+            std::string statusColor;
             std::string statusStr;
-            switch (job.status) {
-                case RUNNING: statusStr = "Running"; break;
-                case STOPPED: statusStr = "Stopped"; break;
-                case DONE:    statusStr = "Done";    break;
+            switch (job.status)
+            {
+            case RUNNING:
+                statusColor = COLOR_GREEN;
+                statusStr = "Running";
+                break;
+            case STOPPED:
+                statusColor = COLOR_YELLOW;
+                statusStr = "Stopped";
+                break;
+            case DONE:
+                statusColor = COLOR_RED;
+                statusStr = "Done";
+                break;
             }
-            std::cout << '[' << job.jobId << "] " << job.pid << " " << statusStr 
+            std::cout << '[' << job.jobId << "] " << job.pid << " "
+                      << statusColor << statusStr << COLOR_RESET
                       << " - " << job.command << std::endl;
         }
     }
