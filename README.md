@@ -71,17 +71,14 @@ make
 ```
 
 ## Authors
-Aurindum Banerjee (B23CS1006) 
-Lokesh Motwani (B23CS1033) 
-Laksh Mendpara (B23CS1037) 
-Aayush Bade (B23CS1084) 
-Prashasta Srivastava (B23CS1096)
+- Aurindum Banerjee (B23CS1006) 
+- Lokesh Motwani (B23CS1033) 
+- Laksh Mendpara (B23CS1037) 
+- Aayush Bade (B23CS1084) 
+- Prashasta Srivastava (B23CS1096)
 
 ## References
-[IBM AIX Shell Features](https://www.ibm.com/docs/en/aix/7.2?topic=concepts-shell-features)
-
-[Fish Shell](https://www.google.com/search?client=firefox-b-d&q=main+feature+of+fish+shell)
-
-[Why Zsh? – Joe Jag](https://code.joejag.com/2014/why-zsh.html#:~:text=Not%20only%20does%20it%20help,Zsh%20a%20joy%20to%20use.)
-
-[O’Reilly – Learning the Bash Shell](https://www.oreilly.com/library/view/learning-the-bash/1565923472/pr01s02.html)
+- [IBM AIX Shell Features](https://www.ibm.com/docs/en/aix/7.2?topic=concepts-shell-features)
+- [Fish Shell](https://www.google.com/search?client=firefox-b-d&q=main+feature+of+fish+shell)
+- [Why Zsh? – Joe Jag](https://code.joejag.com/2014/why-zsh.html#:~:text=Not%20only%20does%20it%20help,Zsh%20a%20joy%20to%20use.)
+- [O’Reilly – Learning the Bash Shell](https://www.oreilly.com/library/view/learning-the-bash/1565923472/pr01s02.html)
