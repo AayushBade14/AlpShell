@@ -71,14 +71,10 @@ make
 ```
 
 ## Authors
-Aurindum Banerjee (B23CS1006)
-
-Lokesh Motwani (B23CS1033)
-
-Laksh Mendpara (B23CS1037)
-
-Aayush Bade (B23CS1084)
-
+Aurindum Banerjee (B23CS1006) 
+Lokesh Motwani (B23CS1033) 
+Laksh Mendpara (B23CS1037) 
+Aayush Bade (B23CS1084) 
 Prashasta Srivastava (B23CS1096)
 
 ## References
