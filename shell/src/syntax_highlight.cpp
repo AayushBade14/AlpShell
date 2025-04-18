@@ -1,7 +1,5 @@
-// filepath: /home/laksh/repos/AlpsOS/shell/src/syntax_highlight.cpp
-#include "lexer.h"
 #include "syntax_highlight.h"
-#include "prompt.h"
+
 extern "C"
 {
     #include <readline/readline.h>
@@ -69,12 +67,19 @@ int is_quoted(char *text, int index) // Match readline's expected signature
 
 // Hook to redisplay the prompt with syntax highlighting
 // filepath: /home/laksh/repos/AlpsOS/shell/src/syntax_highlight.cpp
+// Replace the current redisplay_hook() implementation
 extern "C" void redisplay_hook()
 {
     char *line = rl_copy_text(0, rl_end);
     int syntax_error = check_syntax(line);
     free(line);
 
+    // Generate new suggestion
+    std::string current_input(rl_line_buffer);
+    current_suggestion = findHistorySuggestion(current_input);
+    suggestion_active = !current_suggestion.empty();
+
+    // Set prompt FIRST
     std::string base_prompt = get_prompt();
     size_t dollar_pos = base_prompt.find("$");
 
@@ -89,5 +94,24 @@ extern "C" void redisplay_hook()
     {
         rl_set_prompt(base_prompt.c_str());
     }
+
+    // Then redisplay
     rl_redisplay();
+
+    // Show ghost text AFTER main display
+    if (suggestion_active && rl_end == rl_point)
+    {
+        // Save cursor position
+        int saved_point = rl_point;
+
+        // Print ghost text
+        fprintf(rl_outstream, "%s%s%s",
+                GHOST_COLOR,
+                current_suggestion.substr(rl_end).c_str(),
+                RESET_COLOR);
+
+        // Restore cursor
+        rl_point = saved_point;
+        rl_forced_update_display();
+    }
 }

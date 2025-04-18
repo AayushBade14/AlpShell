@@ -8,6 +8,9 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "lexer.h"
+#include "auto_suggestion.h"
+#include "prompt.h"
+
 #define ERROR_COLOR "\001\033[1;31m\002"
 #define RESET_COLOR "\001\033[0m\002"
 

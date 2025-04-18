@@ -22,5 +22,6 @@ std::string get_prompt()
     }
 
     // Directory in cyan, prompt symbol in green with bold
-    return COLOR_CYAN + current_dir + COLOR_RESET " " COLOR_GREEN BOLD "$ " COLOR_RESET;
+    // return COLOR_CYAN + current_dir + COLOR_RESET " " COLOR_GREEN BOLD "$ " COLOR_RESET;
+    return std::string(COLOR_CYAN) + current_dir + COLOR_RESET + " " + COLOR_GREEN + BOLD + "$ " + COLOR_RESET + " ";
 }
